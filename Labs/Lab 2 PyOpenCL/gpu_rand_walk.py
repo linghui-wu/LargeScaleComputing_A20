@@ -19,24 +19,28 @@ def sim_rand_walks(n_runs):
     # Generate an array of Normal Random Numbers on GPU of length n_sims*n_steps
     n_steps = 100
     rand_gen = clrand.PhiloxGenerator(ctx)
-    ran = rand_gen.normal(queue, (n_runs*n_steps), np.float32, mu=0, sigma=1)
+    # print("rand_gen: ", rand_gen)
+    ran = rand_gen.normal(queue, (n_runs * n_steps), np.float32, mu=0, sigma=1)
+    # print(len(ran))  # 1000000
+    print(type(ran))
 
     # Establish boundaries for each simulated walk (i.e. start and end)
     # Necessary so that we perform scan only within rand walks and not between
-    seg_boundaries = [1] + [0]*(n_steps-1)
+    seg_boundaries = [1] + [0] * (n_steps - 1)
     seg_boundaries = np.array(seg_boundaries, dtype=np.uint8)
+    # print(seg_boundaries)
     seg_boundary_flags = np.tile(seg_boundaries, int(n_runs))
     seg_boundary_flags = cl_array.to_device(queue, seg_boundary_flags)
 
     # GPU: Define Segmented Scan Kernel, scanning simulations: f(n-1) + f(n)
     prefix_sum = GenericScanKernel(ctx, np.float32,
-                arguments="__global float *ary, __global char *segflags, "
-                    "__global float *out",
-                input_expr="ary[i]",
-                scan_expr="across_seg_boundary ? b : (a+b)", neutral="0",
-                is_segment_start_expr="segflags[i]",
-                output_statement="out[i] = item + 100",
-                options=[])
+        arguments="__global float *ary, __global char *segflags, "
+            "__global float *out",
+        input_expr="ary[i]",
+        scan_expr="across_seg_boundary ? b : (a+b)", neutral="0",
+        is_segment_start_expr="segflags[i]",
+        output_statement="out[i] = item + 100",
+        options=[])
 
     # Allocate space for result of kernel on device
     '''
@@ -80,7 +84,7 @@ def sim_rand_walks(n_runs):
     return
 
 def main():
-    sim_rand_walks(n_runs = 10000)
+    sim_rand_walks(n_runs=10000)
 
 if __name__ == '__main__':
     main()
