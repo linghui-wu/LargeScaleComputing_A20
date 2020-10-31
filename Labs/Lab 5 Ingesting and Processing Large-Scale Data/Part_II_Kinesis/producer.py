@@ -3,6 +3,7 @@ import boto3
 import testdata
 import json
 
+# Loads Kinesis
 kinesis = boto3.client('kinesis', region_name='us-east-1')
 
 # Continously write Twitter-like data into Kinesis stream

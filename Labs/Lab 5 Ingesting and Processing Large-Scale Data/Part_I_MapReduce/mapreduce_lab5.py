@@ -26,7 +26,7 @@ class MRMostUsedWord(MRJob):
         If a review's star rating is 5, yield all of the words in the review
         '''
         data = row.split('\t')
-        if data[7] == '5':
+        if data[7] == '5':  # Pick 5-star amazon reviews
             for word in WORD_RE.findall(data[13]):
                 yield (word.lower(), 1)
 
@@ -59,3 +59,4 @@ class MRMostUsedWord(MRJob):
 
 if __name__ == '__main__':
     MRMostUsedWord.run()
+

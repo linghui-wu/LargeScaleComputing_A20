@@ -13,9 +13,7 @@ shard_it = kinesis.get_shard_iterator(StreamName = "test_stream",
 i = 0
 s = 0
 while 1==1:
-    out = kinesis.get_records(ShardIterator = shard_it,
-                              Limit = 1
-                             )
+    out = kinesis.get_records(ShardIterator=shard_it, Limit=1)
     for o in out['Records']:
         jdat = json.loads(o['Data'])
         s = s + len(set(jdat['tweet'].split()))
