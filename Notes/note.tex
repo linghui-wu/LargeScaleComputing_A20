@@ -1,0 +1,1196 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{letterpaper,tmargin=1in,bmargin=1in,lmargin=1.25in,rmargin=1.25in}
+\usepackage[parfill]{parskip}
+\usepackage{amsmath}
+\usepackage{listings}
+\lstset{frame=single,
+        language=Python,
+        showstringspaces=false,
+        columns=flexible,
+        basicstyle={\small\ttfamily},
+        numbers=none,
+        breaklines=true,
+        breakatwhitespace=true
+        tabsize=3
+}
+
+\title{Lecture Notes for MACS 30123 \\ Large-Scale Computing for the Social Sciences}
+\author{Linghui Wu}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Fundamentals of Large-Scale Computing}
+
+\subsection{Introduction to Large-Scale Computing}
+
+Key Concerns in the Pursuit of Large-Scale Computing
+\begin{enumerate}
+    \item Large-Scale Computation
+    \item Large-Scale Data
+\end{enumerate}
+
+Solutions: Split the computation up into a series of parallel smaller computations.
+
+Large-Scale Data have \textbf{4 Vs}
+\begin{enumerate}
+    \item Volume: hard to store in a disk
+    \item Velocity: real-time data comes in fast
+    \item Variety: geographic, image information … 
+    \item Variability: clean \& process data in variable levels:
+\end{enumerate}
+
+Solutions: Split data up, Process it in parallel streams and batches, Employ alternative flexible data structures, …
+
+\subsubsection{Parallel Computing Architectures}
+
+\textbf{Serial Computation} problems are broken up in a discrete set of instructions and instructions are executed sequentially, typically done in a single processor
+
+\textbf{Parallel Computation} simultaneously use multiple computer resources to solve single computation tasks, typically done on different processors
+
+Why Use Parallel Computing?
+\begin{itemize}
+    \item Save time/money
+    \item Solve larger problems
+    \item Make better use of available hardware to achieve full tolerance for replication
+\end{itemize}
+
+\textbf{Parallel Computer Architectures}
+{\underline Flynn’s Taxonomy} describes the degree to which is computer is paralleled at hardware level.
+\begin{itemize}
+    \item Single Instruction, Single Data (SISD)
+    \item MISD, relatively rare but exists in space shuttles
+    \item \textbf{SIMD}, special account for vectorization, e.g. GPU processes pixels in images
+    \item \textbf{MIMD}, seen in multicore CPUs
+\end{itemize}
+
+\subsubsection{General Considerations for Parallel Programming}
+
+High-level Parallel Programming Models
+\begin{itemize}
+    \item Single Program, Multiple Data (SPMD), one of the most dominant programs for cluster computing
+    \item MPMD
+\end{itemize}
+
+\textbf{Designing Parallel Program}
+
+First, Understanding the Problem and the Program
+\begin{itemize}
+    \item Where is most of the work being done?
+    \item Can it be parallelized?
+\end{itemize}
+
+Easy to parallelize where we perform independent operations on a set of data
+
+\textit{EX.} Monte Carlo Simulations, Text Processing
+
+Difficult to parallelize of anything with data dependencies, sequential operations
+
+\textit{EX.} Fibonacci Sequence $f(n) = f(n-1) + f(n-2)$
+
+Then, Partitioning
+\begin{itemize}
+    \item Domain Decomposition: Each processor gets even-sliced data to work on – equal team work.
+    \item Functional Decomposition: Split up the system into subsystems onto different processors.
+\end{itemize}
+
+Finally, Assessing the Scalability of Parallel Solutions
+\begin{itemize}
+    \item Amdahl’s Law Speedup = $\frac{1}{1-P}$ where P = parallel fraction of work.
+    \item Amdahl’s Law Speedup = $\frac{1}{\frac{P}{N} + S}$ where P = parallel fraction of work, S = serial fraction of work \& N = \# of Processors.
+\end{itemize}
+But there are limits in the scalability due to serial parts.
+\begin{itemize}
+    \item Gustafson’s Law Scaled Speedup: to solve large problems rather than fixed problem size and the serial part becomes negligible $S + P \times N$.
+\end{itemize}
+
+\subsection{Introduction to On-Premises CPU Clusters}
+
+\subsubsection{CPUs and Resrarch Computing Clusters: Hardware Considerations}
+
+Central Processing Unit (CPU) is composed of:
+\begin{itemize}
+    \item Memory – stores instructions and data;
+    \item Control Unit – fetches instructions and data from the memory and decodes the instructions into commands;
+    \item Execution Unit (Arithmetic Logic Unit, ALU) – executes the command and moves the results back into memory.
+\end{itemize}
+
+\textbf{Multicore CPUs} Each CPU has an associated individual memory and shared memory that across different cores.
+
+Major CPU Processing Bottlenecks
+\begin{itemize}
+    \item Compute: CPU can only execute certain \#operations per cycle.
+    
+    Calculating Peak Performance $FLOP/s = Cores \times Hertz/Core \times FLOPs/Cycle$ where FLOP is the floating points of operations.
+    
+    \textit{EX.} $FLOP/s = 4 \times 2.5GHz \times 4FLOPs/Cycle = 40b/s$ over the entire chip for the CPU.
+    
+    \item Memory Bandwidth: It takes longer than you expect for CPUs to access the memory and dramatically slows down the codes.
+    
+    The time for read and write data before and after performing the computation.
+\end{itemize}
+
+\textbf{Memory Hierarchy} (from smaller, faster, costlier to larger, slower, cheaper)
+CPU, Cache, Main Memory (RAM), Disk storage, Remote storage (e.g. Cloud, tapes)
+
+Memory Bottleneck Takeaways
+\begin{itemize}
+    \item Keep your data close to your CPU
+    \item Increase the size of your faster memory sources, if necessary
+\end{itemize}
+
+\textbf{Working on a Research Computer Cluster (RCC)}
+
+CPUs in clusters are organized by Nodes, where one or more processor fits into a Socket of the nodes. 
+
+\textbf{Midway RCC Architecture (see the slides.)}
+
+Key point: avoid communications b/w processors as much as possible unless it is necessary. 
+
+\subsubsection{Foster's Method (PCAM)}
+
+\textbf{Foster's Method (PCAM)}
+\begin{itemize}
+    \item Partitioning: identify things that can be paralleled and divide the data \& computation into smaller tasks.
+    \item Communication: what communication needs to be carried out among the tasks.
+    \item gglomeration or Aggregation: combine tasks and communication into larger composite tasks. 
+    
+    Enhance concurrency – plays concurrentable tasks on different processors
+    
+    Increase locality – plays frequently-communicated tasks on the same processor.
+    \item Mapping: assign the composite tasks to processors or threads.
+\end{itemize}
+
+Partitioning
+\begin{itemize}
+    \item (n tasks) Train ML model using “n” different sets of hyperparameters
+    \item (1 task) Identify optimal set of hyperparameters and model
+    \item (m tasks) Use optimal model to predict archaeological site locations in “m” images in test dataset
+\end{itemize}
+
+Communications
+\begin{itemize}
+    \item Training images, what hyperparameter values to work with -> training tasks
+    \item Synchronize training tasks s.t. they are all finished training using their subset of hyperparameters
+    \item Communicate b/w training tasks to identify where and what the optimal set of hyperparameters is
+    \item Communicate optimal model configuration to all prediction tasks
+    \item Test images -> prediction tasks
+\end{itemize}
+
+Aggregation
+\begin{itemize}
+    \item Subset of n training tasks and communications can be aggregated on different processors
+    \item Synchronization b/w training tasks, identify/broadcast optimal model to all the processors
+    \item Make predictions on subsets of m test images, aggregated on different processors
+\end{itemize}
+
+Mapping
+\begin{itemize}
+    \item On 10 CPU cores
+    \item n/10 training tasks performed on each CPU core
+    \item Synchronization, then MPI “All Reduce” to find model that produces maximum accuracy and broadcast it to all processors, also clears the cache to reserve faster memory space for making predictions on test images
+    \item Read m/10 test data images onto each processor and make predictions using the model 
+\end{itemize}
+
+\subsubsection{Introduction to MPI and mpi4py}
+
+\textbf{Goal} communication on a distributed memory architecture
+
+\textbf{The MPI Standards}
+\begin{itemize}
+    \item A specification and NOT a single library
+    \item Originally designed for distributed memory architectures, but works on hybrid memory architecture so that messages can be passed through CPU cores and distant nodes
+    \item Programmer is responsible for identifying parallelism and implementing parallel algorithms - lower-level programming introduces errors
+\end{itemize}
+
+\textbf{Programming MIMD systems}
+\begin{itemize}
+    \item MPI: Send, Receive. Codes on the sending processor will be different from the codes in the receiving processor.
+    \item Commonly MPI programs use the SPMD model
+    
+    \begin{lstlisting}[language=Python]
+    if processor == 0:
+        # send
+    elif processor == 1:
+        # receive
+    \end{lstlisting}
+\end{itemize}
+
+\begin{lstlisting}[language=Python]
+# `hello_world.py' Print out "Hello World" on different processors
+from mpi4py import MPI
+comm = MPI.COMM_WORLD  # COMM_WORLD designation so all available processors communicate with each other 
+rank = comm.Get_rank()  # Each processor has own local copy of rank that cannot be accessed by other processors 
+size = comm.Get_size()  # Total # of processors
+
+print("Hello World from rank", rank, "out of ", size, "processors.")
+\end{lstlisting}
+\begin{lstlisting}
+mpirun -n 4 python hello_world.py  # The processors perform tasks in different order.
+\end{lstlisting}
+
+\textbf{Programming SPMD Example}
+\begin{lstlisting}[language=Python]
+from mpi4py import MPI
+rank = MPI.COMM_WORLD.Get_rank()
+
+a = 6.0
+b = 3.0
+if rank == 0:
+    print(a + b)
+if rank == 1:
+    print(a * b)
+if rank == 2:
+    print(max(a, b))
+\end{lstlisting}
+
+\textbf{Point-to-Point Communication (Arbitrary Python Objects)}
+\begin{lstlisting}[language=Python]
+from mpi4py import MPI
+rank = MPI.COMM_WORLD.Get_rank()
+
+# Send the dict from rank 0 to rank 1
+if rank == 0:
+    data = {'a': 7, 'b': 3.14}
+    comm.send(data, dest=1)
+elif rank == 2:
+    data = comm.recv(source=0)
+\end{lstlisting}
+
+\textbf{Point-to-Point Communication (NumPy Arrays)}
+\begin{lstlisting}[language=Python]
+from mpi4py import MPI
+import numpy as np
+
+rank = MPI.COMM_WORLD.Get_rank()
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+
+# Send the numpy array from rank 0 to rank 1
+if rank == 0:
+    data = np.arange(100, dtype=np.float)
+    comm.Send(data, dest=1)
+elif rank == 1:
+    data = np.empty(100, dtype=np.float)
+    comm.Recv(data, source=0)
+\end{lstlisting}
+
+\textbf{Collective Communication - Broadcast(comm.Bcast())}
+Enable every processor to communicate with one another.
+\begin{itemize}
+    \item broadcast a message to all the processors
+    \item tree-based approach
+\end{itemize}
+
+\begin{lstlisting}[language=Python]
+from mpi4py import MPI
+import numpy as np
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+
+# Send the numpy array from rank 0 to rank 1
+if rank == 0:
+    data = np.arange(100, dtype='i')
+else:
+    data = np.empty(100, dtype='i')
+comm.Bcast(data, root=0)  # `Bcast` is fast designed for `NumPy`, `bcast` is slow designed for all obj.
+\end{lstlisting}
+
+\textbf{Scatter (comm.Scatter())} takes an array of elements and distributes these elements in an order of the processor's rank. It might serve as evenly partitioning the data so tasks can ben run on different portions.
+
+\textbf{Gather (comm.Gather())} collects the data back into a single processor.
+
+\textbf{Reduce (comm.Reduce())} can be used for calculating summary statistics and performing simulations.
+
+\textbf{Allreduce (comm.Allreduce())} simultaneously brings the maximum accuracy machine learning model to all processors at once.
+
+\subsection{On-Premises GPU-computing with OpenCL}
+
+\subsubsection{Introduction to GPUs}
+
+Recall from last week that CPUs can be
+
+\begin{itemize}
+    \item \textbf{Compute-bound} Deal with communication costs between different cores within one CPU in order to coordinate them
+    \item \textbf{Memory Bandwidth-bound} Different levels of memory hierarchy have different access restrictions.
+\end{itemize}
+
+GPUs (Graphic Processing Units) are capable of
+
+\begin{itemize}
+    \item High computational density and memory bandwidth
+    \item Running 1000s of concurrent threads to hide latency (i.e. high throughput)
+\end{itemize}
+
+A Brief History
+
+\begin{itemize}
+    \item Early 2000s: scientific applications via Graphics APIs
+    \item 2006: NVIDIA launched CUDA
+    \item 2008: Khronos Group defined OpenCL
+\end{itemize}
+
+\textbf{CPU vs GPU Applications}
+
+CPUs consist of a few cores that are optimized for serial processing but they have memory-bandwidth problems.
+
+GPUs consist of thousands of smaller cores designed for parallel computing such as graphic shading in the graphic pipeline, which are often ten-times the bandwidth with CPUs. However, each tiny GPU core is slower than a CPU core.
+
+Performance
+
+\begin{itemize}
+    \item CPUs measured in GigaFLOP/s
+    \item GPUs measured in TeraFLOP/s
+\end{itemize}
+
+Trade-offs
+
+\begin{itemize}
+    \item CPUs can multi-task and perform complicated sequential operations (MIMD + SIMD)
+    \item GPUs tend to be able to run simple functions over large parallelized data (SIMD)
+\end{itemize}
+
+Will Execution on GPU Accelerate my Application?
+
+\begin{itemize}
+    \item Computationally intensive
+    \item Massively parallel
+    \item Well-suited to GPU architectures
+\end{itemize}
+
+Some prime candidates for GPU Accelerations
+
+\begin{itemize}
+    \item Elementwise linear algebra (addition, scalar multiplication)
+    \item Image Processing: spread the work on pixels onto different GPU cores
+    \item Monte Carlo simulations
+    \item Brute-force optimization: run a set of possible hyperparameters onto different GPU cores
+    \item Random Number Generatoin
+\end{itemize}
+
+\subsubsection{Introduction to OpenCL and GPU Programming}
+
+Basic ``formula'' for GPU Programming
+
+\begin{itemize}
+    \item Setup inputs on the host(CPU-accessible memory), which sends the functions and the in-format data from the kernel to GPUs
+    \item Allocate memory for inputs on the GPU, and indicate where our data is actually going to go on the GPU devices
+    \item Copy inputs from host to GPU (transfering from CPU to GPU memory is the major bottleneck)
+    \item Allocate memory for outputs on the host
+    \item Allocate memory for outputs on the GPU
+    \item Start GPU kernels so they can run on the information being put on the GPUs
+    \item Copy output from GPU to host
+\end{itemize}
+
+\textbf{Working with OpenCL}
+
+First, identifying Host and Devices where Host tells each device what to do (e.g. send/receive data, execute kernel code) and OpenCL Devices are NVIDIA GPUs, AMD GPUs as well as Intel Xeon CPUs.
+
+Once on the Compute Device, there are series of Compute Units which contain thousands of Processing Elements which allows GPU to perform operations concurrently.
+
+(OpenCL Device Model) Each Processing Element has a certain amount of private memory and Compute Units have Local Memory shared by different Processing Elements. Altogether, the Compute Units have Constant Memory and Global Memory available to them. 
+
+\textbf{Submmiting Work to Compute Devices}
+
+\textbf{Kernels (Work Items)} a function that run concurrently on the devices' processing units. The big idea is to replace loops with functions that can process chunks of data simultaneously on a variety of processing elements.
+
+\begin{lstlisting}[language=Python]
+# Change:
+for i in range(N):
+    b[i] = a[i] * 2
+
+# To:
+def kernel(a, b)"
+# Each `id' == OpenCL work-item
+    id = get_global_id(0)
+    b[id] = a[id] * 2
+\end{lstlisting}
+
+\textbf{Full OpenCL (Host) Program} does the following things.
+
+\begin{itemize}
+    \item Define platform and queues
+    \item Define memory objects
+    \item Create program
+    \item Build the program
+    \item Create and setup kernel
+    \item Execute the kernel
+    \item Read results on the host
+\end{itemize}
+
+\subsubsection{Harnessing GPUs with PyOpenCL}
+
+\textbf{A PyOpenCL Program}
+
+\begin{lstlisting}[language=Python]
+import pyopencl as cl
+import numpy as np
+
+ctx = cl.create_some_context()
+queue = cl.CommandQueue(ctx)
+\end{lstlisting}
+
+\textbf{Memory Allocation and Data Transfer}
+
+\begin{lstlisting}[language=Python]
+a = np.random.rand(50000).astype(np.float43)
+a_buf = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, size=a.nbytes)
+cl.enqueue_copy(queue, a_buf, a)
+\end{lstlisting}
+
+\textbf{Build Program, Write Kernel(s)}
+
+\begin{lstlisting}[language=Python]
+prg = cl.Program(ctx,"""
+    __kernel void twice(__global float *a)
+    {
+        int gid = get_global_id(0);
+        a[gid] = 2 * a[gid];
+    }
+    """).build()
+\end{lstlisting}
+
+\textbf{Running a Kernel}
+
+\begin{lstlisting}[language=Python]
+prg.twice(queue, a.shape, None, a_buf)
+\end{lstlisting}
+
+\textbf{Copy Data Back to Host}
+
+\begin{lstlisting}[language=Python]
+result = np.empty_like(a)
+cl.enqueue_copy(queue, result, a_buf)
+\end{lstlisting}
+
+\textbf{PyOpenCL Arrays}
+
+\begin{lstlisting}[language=Python]
+import pyopencl as cl
+import pyopencl.array as cl_array
+import numpy as np
+
+ctx = cl.create_some_context()
+queue = cl.CommandQueue(ctx)
+
+a = np.random.rand(50000).astype(np.float32)
+a_dev = cl_array.to_device(queue, a)
+
+# Double all entries on GPU
+twice = 2 * a_dev
+
+# Turn back into Numpy Array
+twice_a = twice.get()
+\end{lstlisting}
+
+\textbf{Generating Random Numbers on Device}
+
+\begin{lstlisting}[language=Python]
+import pyopencl as cl
+import pyopencl.clrandom as clrand
+import numpy as np
+
+ctx = cl.create_some_context()
+queue = cl.CommandQueue(ctx)
+
+n = 10 ** 6  
+a = clrand.rand(queue, n, np.float32) 
+b = clrand.rand(queue, n, np.float32)
+\end{lstlisting}
+
+
+\textbf{Map Operations}
+\begin{lstlisting}[language=Python]
+import pyopencl as cl
+import pyopencl.clrandom as clrand
+import numpy as np
+
+ctx = cl.create_some_context()
+queue = cl.CommandQueue(ctx)
+
+n = 10 ** 6  
+a = clrand.rand(queue, n, np.float32) 
+b = clrand.rand(queue, n, np.float32)
+
+c1 = 5 * a + 6 * b
+result_np = c1.get()
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python]
+lin_comb = ElementwiseKernel(ctx,
+    "float a, float *x, float b, float *y, float *c",
+    "c[i] = a * x[i] + b * y[i]")
+c2 = c1.array.empty_like(a)
+lim_comb(5, a, 6, b, c2)
+result_np = c2.get()
+\end{lstlisting}
+
+\textbf{Reduce Operations}
+
+Associativity: $a \cdot (b \cdot c) = (a \cdot b) \cdot c$ 
+
+Identity: $e\cdot a = a\cdot e = a$ where $e$ is the neural operator
+
+\begin{lstlisting}[language=Python]
+import pyopencl as cl
+import pyopencl.clrandom as clrand
+from pyopencl.reduction import ReductionKernel
+import numpy as np
+
+ctx = cl.create_some_context()
+queue = cl.CommandQueue(ctx)
+
+n = 10 ** 7
+x = clrand.rand(queue, n, np.float64)
+
+rknl = ReductionKernel(ctx, np.float64, 
+    neutral="0",
+    reduce_expr="a+b", map_expr="x[i]*x[i]",
+    arguments="double *x")
+
+result = rknl(x)
+result_np = result.get()
+\end{lstlisting}
+
+\textbf{Scan Operations} 
+
+It handles data dependencies that might emerge in loops.
+
+\begin{lstlisting}[language=Python]
+import numpy as np 
+
+np.cumsum([1, 2, 3])
+np.arrary([1, 3, 6])
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python]
+import numpy as np 
+
+import pyopencl as cl
+import pyopencl.clrandom as clrand
+from pyopencl.scan import GenericScanKernel
+
+np.cumsum([1, 2, 3])
+np.array([1, 3, 6])
+
+n = 10 ** 7
+x = clrand.rand(queue, n, np.float32)
+
+ctx = cl.create_some_context()
+queue = cl.CommandQueue(ctx)
+sknl = GenericScanKernel(ctx, np.float32, 
+    arguments="double *y, double *x",
+    input_expr="x[i]",
+    scan_expr="a+b",
+    neutral="0",
+    output_statement="y[i+1] = item")
+
+result = cl.array.empty_like(x)
+sknl(result, x)
+result_np = result.get()
+\end{lstlisting}
+
+
+\section{Architecting Computational Social Science Data Solutions in the Cloud}
+\subsection{An Introduction to Cloud Computing and Cloud HPC Architectures}
+
+\subsubsection{Introduction to the Cloud Landscape}
+
+Reasons you might want to scale up into the Cloud: 
+
+\begin{itemize}
+    \item Larger scale computing than in traditional RCC.
+    \begin{enumerate}
+        \item access to the latest technology and customizability,  
+        \item scale up as many cores as possible
+        \item wait time is shorter
+    \end{enumerate}
+    \item Virtually unlimited storage space spread across multiple data centers
+    \item Immediate access to large datasets and models: replicable software, data and \textbf{hareware configurations}
+    \item Adjustable Costs
+    \item ``Serverless'' Architectures
+\end{itemize}
+
+For now, Amazon Web Service, Microsoft Azure and Google Cloud are the major players.
+
+\subsubsection{Fundamental AWS Vovabulary}
+
+\textbf{AWS Regions} Physical location around the world where data centers are clustered. Also konwn as availability zones or AZs. Each AWS region consists of multiple isolated physical AZs within a geographic area. `us-east-1` will be used in class.
+
+\textbf{Availability Zones} There are multilple availability zones within each region. The availablity zones consist of one or more dicrete data. All the AZs are inter-connected with high bandwidth and low latency networking, and the traffic between the connection is encrypted. The setup enables the application to be partitioned between different zones and the data is thereofore distribution in one given data center.
+
+\textbf{EC2 Instance - Elastic Compute Cloud Instance} Whatever the service is, it is expandable, adaptable and customizable. It is equilevant to a node in Midway RCC. The default operation system is Amazon Linux distribution. Data cannot be persistent on an EC2 instance
+
+\textbf{AMI - Amazon Machine Image} Machine set-ups and programs can be saved on AMIs, which is convenient for academic replications.
+
+\textbf{EBS - Elastic Block Storage} Data can be retained longer on EBS disk storage. EBS can be connected and disconnected b/w different EC2 instances.
+
+\textbf{S3 - Simple Storage Service} Keep data for a long while. The fundamental location where data and funciton of any size and are stored persistently in structure. S3 is replicated across multiple availability zones automatically. S3 can make data public so the data can be shared with the scientific community, e.g. the Common Crawl. The unit is S3 bucket.
+
+\textbf{Auto-Scaling} Amazon will automatically dignosed when is programming will be benefited by adding more EC2 instances, e.g. Zoom and Netflix.
+
+Putting it all together.
+
+\begin{itemize}
+    \item Single-node Computing Workflow
+    \item Multi-node Computing Workflow
+\end{itemize}
+
+Abstracting hardware considerations all away: "Serverless" Computing
+
+\textbf{lambda} Instead of setting EC2 instances and etc., we only need write a function using AWD lambda server which automatically transforms the data according to your function and taking care of all the hardware considerations underneath, even auto-scaling when necessary. Note that lambda only runs on EC2 CPU.
+
+\subsubsection{Bursting HPC into Cloud}
+
+\textbf{PyWren} A prototype approach for scaling out ``map'' style tasks for lambda. Send python functions from local machine and lambda will automatically scale whatever sizes it needs to solve the problem. Results will be sent back to local machines and the entire parallel operations will be hided behind.
+
+\begin{lstlisting}[language=Python]
+def my_function(b):
+    x = np.random.normal(0, b, 1024)
+    A = np.random.normal(0, b, (1024, 1024))
+    return np.dot(A, x)
+
+pwex = pywren.default_executor()
+res = pwex.map(my_function, np.linspace(0.1, 100, 1000))    
+\end{lstlisting}
+
+PyWren Scalability: Almost linear scaled workflow for the most part, computer performance improves as the number of workers increases and the memory operations does well.
+
+\begin{lstlisting}[language=Python]
+import pywren
+import numpy as np
+
+
+def addone(x):
+    return x + 1
+
+pwex = pywren.default_executor()
+xlist = np.arange(10)
+futures = pwex.map(addone, xlist)  # placeholders
+
+print([f.result() for f in futures])
+# The results will be blocked until the remote job is completed.
+\end{lstlisting}
+
+Applications includes but not limited to
+
+\begin{itemize}
+    \item Common Crawl Keyword Search
+    \item News Article Sentiment Analysis
+    \item Normalized Vegetation Index (NDVI) Calculation on Landsat 8 Data
+
+    NDVI tells the degree to which the certain image contains live green vegetation which is condusive in assessing the changes in argricultural and urbanization patterns
+\end{itemize}
+
+Bottom Line for (Current) Serverless HPC: Good for embarrasingly parallel solutions (Why bother with lower-level operations if we can use one python function to perform parallel and scale instantly?)
+
+Limitations of (Current) Serverless HPC
+
+\begin{itemize}
+    \item Non-mapping collective operations (Reduce, Scan, etc.)
+    \item Low limit of simultaneous workers ($\sim$ 3k)
+    \item Atomic tasks that last longer than 300s
+    \item Function invocation overhead
+    \item No GPU backends
+\end{itemize}
+
+\subsection{Large-Scale Cloud Storage}
+
+\subsubsection{S3 Data Lake Architectures}
+
+\textbf{What is Distributed Storage?}
+
+A distributed storage system is an infrastructure that can split data across multiple physical servers and more than one data center. It typically takes the form of storage units with the mechanism for data synchronization and coordination between cluster nodes.
+
+Distributed storage systems can store several types of data:
+
+\begin{itemize}
+    \item Files: distributed file systems that allow devices to mount to virtual drives with the actual files distributed across several machines
+    \item Block storage: stores data in volumes, alternative to files that provides slightly higher performance
+    \item Objects: wraps data into objects identified by unique ID or hash
+\end{itemize}
+
+Advantages of Distributed Storage Systems:
+
+\begin{itemize}
+    \item Scalability: adding more storage spaces by adding more storage nodes in the clusters
+    \item Redundancy: storing more than one copy of the data for backup, disastory restoring and etc.
+    \item Cost: cheaper to use commidity hardware storage for large-volumes of data
+    \item Performance: better than a single server and enables massive access to parallel files
+\end{itemize}
+
+Distributed Storage Features
+
+\begin{itemize}
+    \item Partitioning: the ability to distribute between cluster nodes and retrieve data from different nodes 
+    \item Replication: the ability to reproduce different copies of data across nodes 
+    \item Fault tolerance: the ability to retain availability to data even when one or more nodes breaks down
+    \item Elastic Scalability: the ability to enable data users to receive more storages spaces they need by adding or moving more storage units in the cluster
+\end{itemize}
+
+\textbf{CAP Theorem} A distributed system cannot maintain all three - consistency (all cores in the clusters have the same copy of data at the same time), availabity (read and write data at all times) and partition tolerance (the ability to recover from a failure of partition that contains part of the data). Consistency is often given up to guarantee availability and partition tolerance.
+
+\textbf{S3 and CAP Theorem} S3 offers eventual consistency model which may take time for changes to replicate across S3.
+
+\textbf{S3 Data Lake = the foundation for your cloud workflow}
+
+Working with S3 Data via Boto3
+
+\begin{lstlisting}[language=Python]
+import boto3
+
+# Initialize Boto Client for S3
+s3 = boto3.resource("s3")
+
+# Create bucket
+s3.create_bucket(Bucket="my-bucket")  # Universally unique name is requied
+
+# Put objects into bucket
+data = open("test.jpg", "rb")
+s3.Bucket("my-bucket").put_object(Key="test.jpg", Body=data)
+\end{lstlisting}
+
+\textbf{Performing SQL Database Queries in Place}
+
+\textbf{S3 Select} and \textbf{Athena} splits a cluster in serverless fashion and runs queries in the clusters. It is hard to change the observations because they are stored in objects and not in data points.
+
+\subsubsection{Large-Scale Database Solutions}
+
+\textbf{What is a Database?}
+
+\begin{itemize}
+    \item Flat File Databases
+    \begin{itemize}
+        \item Data stored in plain files
+        \item Separated via commas, tabs, etc.
+        \item Simple data
+    \end{itemize}
+    \item Non-relational Database (No SQL)
+    \begin{itemize}
+        \item Miniamlly structured and data can be stored as key-value pair
+        \item \textit{EX.} MongoDB, Couchbase, Amazon DynamoDB
+    \end{itemize}
+    \item Relational Database (SQL) 
+    \textbf{Structured Query Language (SQL)} A language that makes it possible to easily manage the requested data.
+    \begin{itemize}
+        \item \textit{Use Case} Customer's information, billing information, and images uploaded
+        \item \textit{EX.} PostgreSQL, MSSQL, MySQL
+    \end{itemize}
+\end{itemize}
+
+\textbf{How to Choose the Right Database?} (See the YouTube video.)
+
+\textbf{Which Database to Use When?} (idem)
+
+\subsection{Large-Scale Data Ingestion and Processing}
+
+\subsubsection{Ingesting Streaming Data with Kafka and Kinesis}
+
+Increase thoughput to allow more data to move in a given time in the data ecosystem and decrease the bottleneck on the computation side.
+
+\textbf{The Apache Kafka Clusters}: Add more \textbf{Brokers} in the cluster in order to increase the amount of data from producers instances to consumers instances.
+
+\textbf{Serverless Throughout Approach - Kinesis}
+
+See slides for Kinesis Architecture.
+
+Kinesis can scale the input and output steam by changing the number of \textbf{Shards} engaged according to the demands.
+
+\begin{lstlisting}[language=Python]
+import boto3
+
+# Create a Kinesis stream
+kinesis = boto3.client("kinesis")
+
+kinesis.create_stream(
+    StreamName="stream_name",
+    ShardCount=1  # Only 1 shard for AWS Educate - 1M input and 2M output
+    )
+
+# Put data into a Kinesis stream
+kinesis.put_record(
+    StreamName="stream_name",
+    Data=data,
+    PartitionKey="patitionkey"
+    )
+
+# Get data from a Kinesis stream
+shard_it = kinesis.get_shard_iterator(
+    StreamName="stream_name",
+    ShardId="shardId-000000000000",
+    ShardIteratorType="LATEST"
+    )["ShardIterator"]
+
+while 1 == 1:
+    out = kinesis.get_records(ShardIterator=shard_it, Limit=1)
+
+    # Do something with streaming data
+
+    # Set shard iterator to next position in the data stream
+    shard_it = out["NextShardIterator"]
+\end{lstlisting}
+
+\textbf{Applications in the Social Sciences}
+
+\begin{itemize}
+    \item Real-time feedback loops in digital experiments
+    \item Deploying "listeners", already employed in stock analysis in financial decisions
+\end{itemize}
+
+\subsubsection{The Map Reduce Framework}
+
+MPI Workflow
+
+\begin{itemize}
+    \item Manually partition tasks
+    \item Manually establish communication checkpoints between processors to ensure each processor is still online and to guarantee tolerance
+\end{itemize}
+
+\textbf{Motivation} Google Web Search
+
+\textbf{Needs}
+
+\begin{itemize}
+    \item Automatic parallelization at scale
+    \item Optimize network and disk operations
+    \item Handle machine failures
+\end{itemize} 
+
+\textbf{Fundamental MapReduce Unit: (Key, Value)}
+\textit{EX.} (Word, Count), (Student, Grade), (Employee, {"Salary": salary, "Social Security Number": ssn}), and so on...
+
+\textbf{Typical MapReduce Workflow}
+\begin{enumerate}
+    \item Read Data
+    \item Map
+    \begin{itemize}
+        \item Extract relevant information from data
+        \item Output: (key, value) pairs
+    \end{itemize}
+    \item Reduce
+    \begin{itemize}
+        \item Group (key, value) pairs by their keys and summarize/fileter/aggregate to obtain new value
+        \item Output: (key, value2)
+    \end{itemize}
+\end{enumerate}
+
+\begin{lstlisting}[language=Python]
+# Word count pseudocode
+
+def mapper(line):
+    for word in line.split():
+        output(word, 1)
+
+def combiner(key, values):
+    output(key, sum(values))
+
+def reducer(key, values):
+    output(key, sum(values))
+\end{lstlisting}
+
+MapReduce jobs requires one resource manager, \textbf{"master" process}, that splits data evenly among the workers and one or more \textbf{"worker" process}.
+
+If a task crashes, retry on another process or if it fails repeated, end the job. Data is replicated on disk and it's slower to process the data in memory.
+
+MapReduce is ideal for batch jobs such as calculating summary statistics.
+
+Hadoop is an open-source implementation, while the challenge is that we need to manage the machines on clusters.
+
+AWS Elastic MapReduce (EMR) is the manage application for MapReduce and we can only pay for what we use. EMR allows us to use S3 buckets for input and output operations instead of performing on local machines.
+
+\subsubsection{Writing MapReduce Programs in Python with mrjob}
+
+\textbf{A ``mrjob'' script}
+
+\begin{lstlisting}[language=Python]
+from mrjob.job import MRJob
+import re
+
+WORD_RE = re.compile(r"[\w']+")  # Identify all the words in each line of text
+
+class MRWordFreqCount(MRJob):
+
+    def mapper(self, _, line):
+        for word in WORD_RE.findall(line):
+            yield (word.lower(), 1)
+
+    def combiner(self, word, counts):
+        yield (word, sum(counts))
+
+    def reducer(self, word, counts):
+        yield  (word, sum(counts))
+
+# Brief Refresher: Python Generators
+
+def generator():
+    for i in range(3):
+        yield i
+print(generator())  # <generator object generator at 0x7fa222ce64d0>
+
+for i in generator():
+    print(i)
+
+l = [0, 1, 2]
+print(l == [i for i in generator()])
+sum([0, 1, 2]) == sum(generator())
+\end{lstlisting}
+
+\textbf{MapReduce "Steps" and "Jobs"}
+\begin{enumerate}
+    \item Step: a single map -> combine -> reduce "chain"
+
+    Note that a step need not contain all three of map, combine, and reduce
+    
+    \item Job: consists of one or more steps
+\end{enumerate}
+
+\textbf{A Multi-Step ``mrjob'' Script}
+\begin{lstlisting}[language=Python]
+from mrjob.job import MRJob 
+from mrjob.step import MRStep
+import re
+
+WORD_RE = re.compile(r"[\w']+")  # Identify all the words in each line of text
+
+class MRMostUsedWord(MRJob):
+
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper_get_words,
+                    combiner=self.combiner_count_words,
+                    reducer=self.reducer_count_words),
+            MRStep(reducer=self.reducer_find_max_word)
+        ]
+
+    def mapper_get_words(self, _, line):
+        for word in WORD_RE.findall(line):
+            yield (word.lower(), 1)
+
+    def combiner_count_words(self, word, counts):
+        yield (word, sum(counts))
+
+    def reducer_count_words(self, word, counts):
+        yield None, (sum(counts), word) 
+
+    def reducer_find_max_word(self, _, word_count_pairs):
+        # So yielding one results in key=counts, value=word
+        yield max(word_count_pairs)
+
+if __name__ == '__main__':
+    MRMostUsedWord.run()
+
+    # max() identifies the maximum *first* value in a tuple
+    word_counts = [("cat", 1), ("bat", 2)]
+    print(max(word_counts))
+
+    # This time, let's get the word that occurs most frequently
+    word_counts = [(1, "cat"), (2, "bat")]
+    print(max(word_counts))
+\end{lstlisting}
+
+\section{Large-Scale Data Analysis and Prediction}
+\subsection{Introduction to Large-Scale Data Analysis and Prediction with Spark}
+\subsubsection{Parallel Computing with Spark}
+
+\textbf{Why is Spark so Fast?}
+
+First, it caches data in RAM on different individual nodes being processed.
+
+Additionally, it persists data in memory for multiple operations it performs. Unlike MapReduce that transfering data between different mappers and reducers.
+
+It also uses an optimized parallel execution model that automatically parallizes the programs.
+
+\textbf{Basic Unit of Spark: the Resilient Distributed Dataset (RDD)}
+
+With RDD, the data are partitioned across different nodes among clusters that can be operated on in parallel.
+
+\begin{itemize}
+    \item Transformations: Any sort of operation that results in another RDD
+    \begin{itemize}
+        \item Map
+        \item Filter
+        \item Sample
+        \item Group by key
+        \item Reduce by key
+        \item Join
+        \item ...
+    \end{itemize}
+    \item Actions: Compute and report the value of the program results
+    \begin{itemize}
+        \item collect
+        \item reduce
+        \item count
+        \item ...
+    \end{itemize}
+\end{itemize}
+
+Transformation is not really executed until Action is run. The reason why Spark does this is to train together a pipeline and produce the parallelized solutions. The order of transformations is what we need to think about to perform on the dataset.
+
+\textbf{RDD Transformation + Action}
+\begin{lstlisting}[language=Python]
+countsByAge = (df.groupBy("age").count())
+\end{lstlisting}
+
+\subsubsection{Accelerating Spark with GPUs (Optional)} (See the YouTube video)
+
+\subsubsection{Web-Scale Graph Analytics with Apache Spark} (idem)
+
+\subsection{Introduction to Dask}
+\subsubsection{Introduction to Dask}
+
+Dask automatically partitions the dataset and constructs optimized graphs, communications and computations before performing. Dask, in contrast to Spark, is a Python-native solution that builds in the Python data analysis ecosystem.
+
+Existing Python ecosystem includes but not limited to `Numpy', `Pandas' and `Scikit-Learn' which Dask is based on and scales up.
+
+\begin{lstlisting}[language=Python]
+# Numpy
+import numpy as np 
+x = np.ones((1000, 1000))
+print(x + x.T - x.mean(axis=0))
+
+import dask.array as da 
+x = da.ones((1000, 1000))
+print(x + x.T - x.mean(axis=0))
+
+# Pandas
+import pandas as pd 
+df = pd.read_csv("file.csv")
+df.groupby("x").y.mean()
+
+import dask.dataframe as dd
+df = dd.read_csv("s3://*.csv")
+df.groupby("x").y.mean()
+
+# Scikit-Learn
+from scikit_learn.linear_model import LogisticRegression
+lr = LogisticRegression()
+lr.fit(data, labels)
+
+from dask_ml.linear_model import LogisticRegression
+lr = LogisticRegression()
+lr.fit(data, labels)
+\end{lstlisting}
+
+Under the hood, what Dask is actually doing is to partition data structures into small pieces that coordinated by the Dask scheduler.
+
+Dask constructs the optimal task graphs and only executes the code after the task graphs are completed.
+
+\begin{lstlisting}[language=Python]
+import dask.array as da
+# Create a 1D dask array that splits into 5 chunks
+x = da.ones(15, chunks=(5, ))
+# Actually computes the object and returns the result
+
+# More complicated tasks
+x_sum = x.sum()
+print(x_sum.compute())
+
+x = da.ones((15, 15), chunks=(5, 5))
+x_sum = x.sum(axis=0)
+print((x + x.T).compute())
+print(x.compute())
+\end{lstlisting}
+
+\textbf{dask.delayed()}
+Dask also allows users to conveniently set up customized codes as well that automatically assesses the codes provided by the user.
+
+\begin{lstlisting}[language=Python]
+results = []
+for x in A:
+    for y in B:
+        if x < y:
+            results.append(f(x, y))
+        else:
+            results.append(g(x, y))
+
+import dask
+results = []
+results = []
+for x in A:
+    for y in B:
+        if x < y:
+            results.append(dask.delayed(f(x, y)))
+        else:
+            results.append(dask.delayed(g(x, y)))
+Results = dask.compute(results)
+\end{lstlisting}
+
+\textbf{dask.delayed Decorators}
+
+\begin{lstlisting}[language=Python]
+# dask.delayed decorators
+@dask.delayed
+def inc(x):
+    return x + 1
+
+data = [i + 1 for i in range(4)]
+
+output = []
+output = [inc(x) for x in data]
+dask.compute(output)
+\end{lstlisting}
+
+\textbf{Dask on GPU Clusters}
+
+cuDF provides Pandas-like APIs that allows users to work on GPUs.
+\begin{lstlisting}[language=Python]
+import cudf
+
+df = cudf.read_csv("myfile.csv")
+df = df[df.name == "Alice"]
+df.groupby("id").value.mean()
+\end{lstlisting}
+
+Dask allows us to scale datasets up to a cluster of GPUs by setting up the optimized graph. `dask\_cudf' is what works under the hood to perform the necessary operations.
+\begin{lstlisting}[language=Python]
+from dask_cuda import LocalCUDACluster
+import dask_cudf
+from dask.distributed import Client
+
+cluster = LocalCUDACluster()
+client = Client(cluster)
+
+gdf = dask_cudf.read_csv("data/nyc-taxi/*.csv")
+gdf.passenger_count.sum().compute()
+\end{lstlisting}
+
+\textbf{Takeaways}
+
+The functionality of GPU on Dask is currently very limited but has lots of potential.
+
+\subsubsection{Natively Scaling the Python Ecosystem with Dask}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
