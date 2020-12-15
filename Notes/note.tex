@@ -408,7 +408,7 @@ for i in range(N):
     b[i] = a[i] * 2
 
 # To:
-def kernel(a, b)"
+def kernel(a, b):
 # Each `id' == OpenCL work-item
     id = get_global_id(0)
     b[id] = a[id] * 2
@@ -644,7 +644,7 @@ Putting it all together.
     \item Multi-node Computing Workflow
 \end{itemize}
 
-Abstracting hardware considerations all away: "Serverless" Computing
+Abstracting hardware considerations all away: ``Serverless'' Computing
 
 \textbf{lambda} Instead of setting EC2 instances and etc., we only need write a function using AWD lambda server which automatically transforms the data according to your function and taking care of all the hardware considerations underneath, even auto-scaling when necessary. Note that lambda only runs on EC2 CPU.
 
@@ -842,7 +842,7 @@ while 1 == 1:
 
 \begin{itemize}
     \item Real-time feedback loops in digital experiments
-    \item Deploying "listeners", already employed in stock analysis in financial decisions
+    \item Deploying ``listeners'', already employed in stock analysis in financial decisions
 \end{itemize}
 
 \subsubsection{The Map Reduce Framework}
@@ -865,7 +865,7 @@ MPI Workflow
 \end{itemize} 
 
 \textbf{Fundamental MapReduce Unit: (Key, Value)}
-\textit{EX.} (Word, Count), (Student, Grade), (Employee, {"Salary": salary, "Social Security Number": ssn}), and so on...
+\textit{EX.} (Word, Count), (Student, Grade), (Employee, {``Salary'': salary, ``Social Security Number'': ssn}), and so on...
 
 \textbf{Typical MapReduce Workflow}
 \begin{enumerate}
@@ -896,7 +896,7 @@ def reducer(key, values):
     output(key, sum(values))
 \end{lstlisting}
 
-MapReduce jobs requires one resource manager, \textbf{"master" process}, that splits data evenly among the workers and one or more \textbf{"worker" process}.
+MapReduce jobs requires one resource manager, \textbf{``master'' process}, that splits data evenly among the workers and one or more \textbf{``worker'' process}.
 
 If a task crashes, retry on another process or if it fails repeated, end the job. Data is replicated on disk and it's slower to process the data in memory.
 
@@ -943,9 +943,9 @@ print(l == [i for i in generator()])
 sum([0, 1, 2]) == sum(generator())
 \end{lstlisting}
 
-\textbf{MapReduce "Steps" and "Jobs"}
+\textbf{MapReduce ``Steps'' and ``Jobs''}
 \begin{enumerate}
-    \item Step: a single map -> combine -> reduce "chain"
+    \item Step: a single map -> combine -> reduce ``chain''
 
     Note that a step need not contain all three of map, combine, and reduce
     
@@ -1169,28 +1169,4 @@ The functionality of GPU on Dask is currently very limited but has lots of poten
 \subsubsection{Natively Scaling the Python Ecosystem with Dask}
 
 \end{document}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
